@@ -1,0 +1,33 @@
+{
+  "name": "videotube",
+  "version": "1.0.0",
+  "description": "A YouTube clone built with TypeScript, Node.js, and Express. Features include user authentication (bcrypt for password hashing, JWT for token management), video uploads (Multer), cloud storage (Cloudinary), video streaming, and comments. Uses MongoDB with Mongoose and pagination support. CORS enabled for secure cross-origin requests, with dotenv for environment management and cookie-parser for session handling. Follows modular architecture, RESTful API design, and includes robust TypeScript typing.",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node-dev --respawn src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^2.5.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.1",
+    "mongoose-aggregate-paginate-v2": "^1.1.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.7.5",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
+  }
+}
