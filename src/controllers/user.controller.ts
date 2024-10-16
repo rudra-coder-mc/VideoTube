@@ -8,15 +8,8 @@ import { isValidEmail, isValidPassword } from "../utils/validation";
 import jwt from "jsonwebtoken";
 import { ObjectId } from "mongoose";
 import { generateTokens } from "../utils/geretateTken";
+import { CustomUser, FileRequest } from "../type";
 
-type MulterFile = Express.Multer.File;
-
-interface FileRequest extends Request {
-  files: {
-    avatar: MulterFile[];
-    coverImage?: MulterFile[];
-  };
-}
 
 
 // Middleware for validation checks
@@ -29,20 +22,17 @@ const validateUserInput = (username: string, email: string, password: string) =>
 };
 
 
-
-
 // Registration controller
-const registerUser = asyncHandler(async (req: Request, res: Response) => {
+const registerUser = asyncHandler(async (req: FileRequest, res: Response) => {
   const { username, email, fullName, password } = req.body;
-  const typedReq = req as FileRequest;
 
   validateUserInput(username, email, password);
 
   const existingUser = await User.findOne({ $or: [{ username }, { email }] });
   if (existingUser) throw new ApiError(400, "User already exists");
 
-  const avatarPath = typedReq.files?.avatar?.[0]?.path;
-  const coverImagePath = typedReq.files?.coverImage?.[0]?.path;
+  const avatarPath = req.files?.avatar?.[0]?.path;
+  const coverImagePath = req.files?.coverImage?.[0]?.path;
   if (!avatarPath) throw new ApiError(400, "Avatar is required");
 
   const avatarResponse = await uploadOnCloudinary(avatarPath);
@@ -70,8 +60,6 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
-
-
 // Login controller
 const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
@@ -91,6 +79,30 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
+const logoutUser = asyncHandler(async (req: CustomUser, res: Response) => {
+  try {
+    const userId = req.user._id;
+
+    if (!userId) {
+      throw new ApiError(401, 'User is not logged in');
+    }
+
+    await User.findByIdAndUpdate(userId, { $set: { refreshToken: null } });
+
+    res.status(200)
+      .clearCookie('accessToken', { secure: true, httpOnly: true })
+      .clearCookie('refreshToken', { secure: true, httpOnly: true })
+      .json({ message: 'User logged out successfully' });
+
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else {
+      console.error(error);
+      res.status(500).json({ message: 'Error logging out user' });
+    }
+  }
+});
 
 
 // Refresh token controller
@@ -110,4 +122,4 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, { accessToken }, "Access token refreshed successfully"));
 });
 
-export { registerUser, loginUser, refreshAccessToken };
+export { registerUser, loginUser, refreshAccessToken, logoutUser };

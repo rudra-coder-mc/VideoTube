@@ -1,4 +1,15 @@
-import mongoose from "mongoose";
+import { Request } from "express";
+import mongoose, { ObjectId } from "mongoose";
+
+interface user {
+  _id: ObjectId;
+  username: string;
+  email: string;
+  fullName: string;
+  avatar: string;
+  coverImage?: string;
+  watchHistory: ObjectId[];
+}
 
 
 interface IUser extends Document {
@@ -16,4 +27,17 @@ interface IUser extends Document {
   generateRefreshToken(): string;
 }
 
-export { IUser }
+interface CustomUser extends Request {
+  user: user;
+}
+
+
+interface FileRequest extends Request {
+  files: {
+    avatar: Express.Multer.File[];
+    coverImage?: Express.Multer.File[];
+  };
+}
+
+
+export { IUser, CustomUser, FileRequest, user }
