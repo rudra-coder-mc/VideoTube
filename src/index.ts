@@ -1,4 +1,3 @@
-import { log } from "console";
 import { app } from "./app";
 import connectDB from "./db";
 
