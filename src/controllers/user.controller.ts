@@ -6,7 +6,7 @@ import { deleteImageFromCloudinary, extractPublicId, uploadOnCloudinary } from "
 import { ApiResponse } from "../utils/ApiResponse";
 import { isValidEmail, isValidPassword } from "../utils/validation";
 import jwt from "jsonwebtoken";
-import { ObjectId } from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { generateTokens } from "../utils/geretateTken";
 import { CustomUser, FileRequest } from "../type";
 
@@ -163,10 +163,10 @@ const updateUserDetails = asyncHandler(async (req: CustomUser, res: Response) =>
   if (!fullName || !username || !email) {
     throw new ApiError(400, 'all fields are required')
   }
-  
-  if(!isValidEmail(email)) {
+
+  if (!isValidEmail(email)) {
     throw new ApiError(400, 'invalid email')
-  } 
+  }
 
   const user = await User.findById(req.user._id)
 
@@ -179,6 +179,7 @@ const updateUserDetails = asyncHandler(async (req: CustomUser, res: Response) =>
 
   res.status(200).json(new ApiResponse(200, newUser, 'user details updated successfully'))
 
+
 })
 
 
@@ -190,27 +191,27 @@ const updateUserAvatar = asyncHandler(async (req: CustomUser, res: Response) => 
   }
 
   const avatatLocalPath = req.file?.path
-  
+
 
   if (!avatatLocalPath) {
     throw new ApiError(400, 'avatar fill is missing')
   }
-  
+
   const avatar = await uploadOnCloudinary(avatatLocalPath)
 
   if (!avatar) {
     throw new ApiError(400, 'error while uploading avatar')
   }
-  
+
   const publicId = extractPublicId(req.user.avatar)
- const deleteImage = await deleteImageFromCloudinary(publicId)
-  
- if (!deleteImage) {
+  const deleteImage = await deleteImageFromCloudinary(publicId)
+
+  if (!deleteImage) {
     throw new ApiError(400, 'error while deleting avatar')
-  } 
-  
+  }
+
   await User.findByIdAndUpdate(req.user._id, { $set: { avatar } }, { new: true }).select('-password -refreshToken')
-  
+
   res.status(200).json(new ApiResponse(200, { avatar }, 'avatar updated successfully'))
 
 })
@@ -220,35 +221,35 @@ const updateUserAvatar = asyncHandler(async (req: CustomUser, res: Response) => 
 
 const updateUserCoverImage = asyncHandler(async (req: CustomUser, res: Response) => {
 
-  if (!req.file) { 
+  if (!req.file) {
     throw new ApiError(400, 'image is required')
   }
 
   const coverImageLocalPath = req.file?.path
-  
+
 
   if (!coverImageLocalPath) {
     throw new ApiError(400, 'cover image fill is missing')
   }
-  
+
   const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
   if (!coverImage) {
-    throw new ApiError(400, 'error while uploading cover image')  
+    throw new ApiError(400, 'error while uploading cover image')
   }
-  
-  if(req.user.coverImage) {
+
+  if (req.user.coverImage) {
     const publicId = extractPublicId(req.user.coverImage)
     const deleteImage = await deleteImageFromCloudinary(publicId)
- 
+
     if (!deleteImage) {
       throw new ApiError(400, 'error while deleting cover image')
-    } 
+    }
   }
-  
-  
+
+
   await User.findByIdAndUpdate(req.user._id, { $set: { coverImage } }, { new: true }).select('-password -refreshToken')
-  
+
 
   res.status(200).json(new ApiResponse(200, {}, 'cover image updated successfully'))
 
@@ -267,7 +268,129 @@ const getCurrentUser = asyncHandler(async (req: CustomUser, res: Response) => {
 })
 
 
+// get user channel profile
+
+const getUserChannelProfile = asyncHandler(async (req: CustomUser, res: Response) => {
+  const { username } = req.params
+
+  if (!username) {
+    throw new ApiError(400, 'username is required')
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLocaleLowerCase()
+      }
+    },
+    {
+      $lookup: {
+        from: 'subscriptions',
+        localField: '_id',
+        foreignField: 'channel',
+        as: 'subscribers'
+      }
+    },
+    {
+      $lookup: {
+        from: 'subscriptions',
+        localField: '_id',
+        foreignField: 'subscriber',
+        as: 'subscribeTo'
+      }
+    }, {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers"
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo"
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+    {
+
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1
+
+      }
+    }
+  ])
+
+  if (!channel?.length) {
+    throw new ApiError(404, "channel does not exists")
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+
+})
+
+// get wachHistory
+
+const getWatchHistory = asyncHandler(async (req: CustomUser, res: Response) => {
+
+  const user = User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+
+    },
+    {
+      $lookup: {
+        from: 'videos',
+        localField: 'watchHistory',
+        foreignField: '_id',
+        as: 'watchHistory',
+        pipeline: [
+          {
+            $lookup: {
+
+              from: 'user',
+              localField: 'owner',
+              foreignField: '_id',
+              as: 'owner',
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ])
+})
 
 
-
-export { registerUser, loginUser, refreshAccessToken, logoutUser, changePassword, updateUserAvatar, updateUserDetails, updateUserCoverImage,getCurrentUser };
+export { registerUser, loginUser, refreshAccessToken, logoutUser, changePassword, updateUserAvatar, updateUserDetails, updateUserCoverImage, getCurrentUser, getUserChannelProfile,getWatchHistory };

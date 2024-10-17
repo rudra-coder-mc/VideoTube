@@ -2,7 +2,7 @@ import { Request } from "express";
 import mongoose, { ObjectId } from "mongoose";
 
 interface user {
-  _id: ObjectId;
+  _id: string;
   username: string;
   email: string;
   fullName: string;
