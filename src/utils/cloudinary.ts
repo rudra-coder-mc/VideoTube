@@ -84,4 +84,18 @@ const deleteImageFromCloudinary = async (publicId: string): Promise<boolean> => 
 };
 
 
-export { uploadOnCloudinary, deleteImageFromCloudinary };
+// Helper function to extract the public ID from the Cloudinary URL
+const extractPublicId = (url: string): string => {
+  // Split the URL to isolate the part after "/upload/"
+  const parts = url.split('/upload/');
+  if (parts.length < 2) {
+    throw new Error('Invalid Cloudinary URL format');
+  }
+
+  // Get the public ID with the potential folder structure and remove the file extension
+  const publicIdWithExtension = parts[1].split('.')[0]; // Removes the file extension
+  return publicIdWithExtension; // e.g., "uploads/rphkdcmamnkfhle6jp0u"
+};
+
+
+export { uploadOnCloudinary, deleteImageFromCloudinary, extractPublicId };

@@ -1,10 +1,9 @@
 import { ObjectId } from "mongoose";
-import { User } from "../models/user.models.js";
-import { ApiError } from "../utils/ApiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError";
+import { asyncHandler } from "../utils/asyncHandler";
 import jwt from "jsonwebtoken"
-import { CustomUser, user } from "../type.js";
-// import { User } from "../models/user.model.js";
+import { CustomUser, user } from "../type";
+import { User } from "../models/user.models";
 
 export const verifyJWT = asyncHandler(async (req: CustomUser, _, next) => {
   try {

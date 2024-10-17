@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { User } from "../models/user.models";
-import { deleteImageFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary";
+import { deleteImageFromCloudinary, extractPublicId, uploadOnCloudinary } from "../utils/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
 import { isValidEmail, isValidPassword } from "../utils/validation";
 import jwt from "jsonwebtoken";
@@ -12,7 +12,7 @@ import { CustomUser, FileRequest } from "../type";
 
 
 
-// Middleware for validation checks
+// validation checks
 const validateUserInput = (username: string, email: string, password: string) => {
   if (!username || !email || !password) throw new ApiError(400, "All fields are required");
   if (!isValidEmail(email)) throw new ApiError(400, "Invalid email format");
@@ -79,6 +79,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
+// Logout controller
 const logoutUser = asyncHandler(async (req: CustomUser, res: Response) => {
   try {
     const userId = req.user._id;
@@ -122,4 +123,151 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, { accessToken }, "Access token refreshed successfully"));
 });
 
-export { registerUser, loginUser, refreshAccessToken, logoutUser };
+
+// change password
+const changePassword = asyncHandler(async (req: CustomUser, res: Response) => {
+
+  if (!req.user) {
+    throw new ApiError(400, 'user not logedin')
+  }
+
+  const { oldPassword, newPassword } = req.body
+
+  const user = await User.findById(req.user._id)
+
+  if (!user) {
+    throw new ApiError(502, ' user not found')
+  }
+
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, 'wrong old password')
+  }
+
+  user.password = newPassword
+
+  await user.save()
+
+  res.status(200).json(new ApiResponse(200, {}, 'password changed successfully'))
+
+})
+
+
+// update user details
+
+const updateUserDetails = asyncHandler(async (req: CustomUser, res: Response) => {
+
+  const { fullName, username, email } = req.body
+
+  if (!fullName || !username || !email) {
+    throw new ApiError(400, 'all fields are required')
+  }
+  
+  if(!isValidEmail(email)) {
+    throw new ApiError(400, 'invalid email')
+  } 
+
+  const user = await User.findById(req.user._id)
+
+  if (!user) {
+    throw new ApiError(502, 'user not found')
+  }
+
+  const newUser = await User.findByIdAndUpdate(req.user._id, { $set: { fullName, username, email } }, { new: true }).select('-password -refreshToken')
+
+
+  res.status(200).json(new ApiResponse(200, newUser, 'user details updated successfully'))
+
+})
+
+
+// update user avatar
+const updateUserAvatar = asyncHandler(async (req: CustomUser, res: Response) => {
+
+  if (!req.file) {
+    throw new ApiError(400, 'image is required')
+  }
+
+  const avatatLocalPath = req.file?.path
+  
+
+  if (!avatatLocalPath) {
+    throw new ApiError(400, 'avatar fill is missing')
+  }
+  
+  const avatar = await uploadOnCloudinary(avatatLocalPath)
+
+  if (!avatar) {
+    throw new ApiError(400, 'error while uploading avatar')
+  }
+  
+  const publicId = extractPublicId(req.user.avatar)
+ const deleteImage = await deleteImageFromCloudinary(publicId)
+  
+ if (!deleteImage) {
+    throw new ApiError(400, 'error while deleting avatar')
+  } 
+  
+  await User.findByIdAndUpdate(req.user._id, { $set: { avatar } }, { new: true }).select('-password -refreshToken')
+  
+  res.status(200).json(new ApiResponse(200, { avatar }, 'avatar updated successfully'))
+
+})
+
+
+// update user cover image
+
+const updateUserCoverImage = asyncHandler(async (req: CustomUser, res: Response) => {
+
+  if (!req.file) { 
+    throw new ApiError(400, 'image is required')
+  }
+
+  const coverImageLocalPath = req.file?.path
+  
+
+  if (!coverImageLocalPath) {
+    throw new ApiError(400, 'cover image fill is missing')
+  }
+  
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+  if (!coverImage) {
+    throw new ApiError(400, 'error while uploading cover image')  
+  }
+  
+  if(req.user.coverImage) {
+    const publicId = extractPublicId(req.user.coverImage)
+    const deleteImage = await deleteImageFromCloudinary(publicId)
+ 
+    if (!deleteImage) {
+      throw new ApiError(400, 'error while deleting cover image')
+    } 
+  }
+  
+  
+  await User.findByIdAndUpdate(req.user._id, { $set: { coverImage } }, { new: true }).select('-password -refreshToken')
+  
+
+  res.status(200).json(new ApiResponse(200, {}, 'cover image updated successfully'))
+
+})
+
+
+
+// get current user
+
+const getCurrentUser = asyncHandler(async (req: CustomUser, res: Response) => {
+  if (!req.user) {
+    throw new ApiError(400, 'user not logedin')
+  }
+
+  res.status(200).json(new ApiResponse(200, req.user, 'user fetched successfully'))
+})
+
+
+
+
+
+export { registerUser, loginUser, refreshAccessToken, logoutUser, changePassword, updateUserAvatar, updateUserDetails, updateUserCoverImage,getCurrentUser };
