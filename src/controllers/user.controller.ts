@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/asyncHandler'
 import { ApiError } from '../utils/ApiError'
 import { User } from '../models/user.models'
@@ -395,9 +395,8 @@ const getUserChannelProfile = asyncHandler(
 )
 
 // get wachHistory
-
 const getWatchHistory = asyncHandler(async (req: CustomUser, res: Response) => {
-  const user = User.aggregate([
+  const history = await User.aggregate([
     {
       $match: {
         _id: new mongoose.Types.ObjectId(req.user._id),
@@ -438,6 +437,12 @@ const getWatchHistory = asyncHandler(async (req: CustomUser, res: Response) => {
       },
     },
   ])
+
+  if (!history) throw new ApiError(500)
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, history, 'watch history fetched'))
 })
 
 export {
