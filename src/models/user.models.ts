@@ -1,7 +1,7 @@
-import mongoose, { Schema } from "mongoose";
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
-import { IUser } from "../type";
+import mongoose, { Schema } from 'mongoose'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import { IUser } from '../type'
 
 const userSchema = new Schema<IUser>(
   {
@@ -11,7 +11,7 @@ const userSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true
+      index: true,
     },
     email: {
       type: String,
@@ -24,7 +24,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       trim: true,
-      index: true
+      index: true,
     },
     avatar: {
       type: String, // cloudinary url
@@ -36,25 +36,24 @@ const userSchema = new Schema<IUser>(
     watchHistory: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Video"
-      }
+        ref: 'Video',
+      },
     ],
     password: {
       type: String,
-      required: [true, 'Password is required']
+      required: [true, 'Password is required'],
     },
     refreshToken: {
-      type: String
-    }
-
+      type: String,
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 )
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next()
 
   this.password = await bcrypt.hash(this.password, 10)
   next()
@@ -70,28 +69,24 @@ userSchema.methods.generateAccessToken = function () {
       _id: this._id,
       email: this.email,
       username: this.username,
-      fullName: this.fullName
+      fullName: this.fullName,
     },
     process.env.ACCESS_TOKEN_SECRET!,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY
-    }
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    },
   )
 }
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-
     },
     process.env.REFRESH_TOKEN_SECRET!,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY
-    }
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    },
   )
 }
 
-
-
-
-export const User = mongoose.model("User", userSchema)
+export const User = mongoose.model('User', userSchema)
