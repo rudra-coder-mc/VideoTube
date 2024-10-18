@@ -163,6 +163,4 @@ const getLikedVideos = asyncHandler(async (req: CustomUser, res: Response) => {
     )
 })
 
-
-
 export { toggleVideoLink, toggleCommentLink, toggleTweetLink, getLikedVideos }
