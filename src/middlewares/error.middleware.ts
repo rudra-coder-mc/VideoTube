@@ -1,12 +1,8 @@
-import { Request, Response} from 'express'
+import { Request, Response } from 'express'
 import { ApiError } from '../utils/ApiError'
 
 // Enhanced error handling middleware
-const errorHandler = (
-  err: ApiError,
-  req: Request,
-  res: Response,
-) => {
+const errorHandler = (err: ApiError, req: Request, res: Response) => {
   const statusCode = err.statusCode || 500
   const message = err.message || 'Internal Server Error'
 

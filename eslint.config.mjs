@@ -1,7 +1,7 @@
-import globals from 'globals';
-import eslintConfigPrettier from 'eslint-config-prettier';
-import pluginJs from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import globals from 'globals'
+import eslintConfigPrettier from 'eslint-config-prettier'
+import pluginJs from '@eslint/js'
+import tseslint from 'typescript-eslint'
 
 export default [
   {
@@ -19,11 +19,19 @@ export default [
       },
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { vars: 'all', args: 'after-used', ignoreRestSiblings: true, argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          args: 'after-used',
+          ignoreRestSiblings: true,
+          argsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'off', // Disable the no-explicit-any rule
     },
   },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
-];
+]
