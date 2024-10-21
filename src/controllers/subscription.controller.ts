@@ -49,7 +49,11 @@ const getUserChannelSubscribers = asyncHandler(
       throw new ApiError(400, 'Invalid channelId')
 
     // return subscribers list of channel
-    const subscription = await Subscription.find({ channel: channelId })
+    // const subscription = await Subscription.find({ channel: channelId })
+    const subscription = await Subscription.aggregate([
+      { $match: { channel: channelId } },
+      { $lookup: { from: 'users', localField: 'subscriber', foreignField: '_id', as: 'subscriber' } },
+    ])
 
     if (!subscription) throw new ApiError(400, 'channel not found')
 
@@ -69,7 +73,11 @@ const getSubscribedChannels = asyncHandler(
     if (!isValidObjectId(subscriberId))
       throw new ApiError(400, 'Invalid subscriberId')
 
-    const subscription = await Subscription.find({ subscriber: subscriberId })
+    // const subscription = await Subscription.find({ subscriber: subscriberId })
+    const subscription = await Subscription.aggregate([
+      { $match: { subscriber: subscriberId } },
+      { $lookup: { from: 'users', localField: 'channel', foreignField: '_id', as: 'channel' } },
+    ])
 
     if (!subscription) throw new ApiError(400, 'user not found')
 
